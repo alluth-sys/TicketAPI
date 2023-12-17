@@ -1,4 +1,6 @@
 
+using TicketAPI.CloudStorage;
+
 namespace TicketAPI
 {
     public class Program
@@ -10,6 +12,7 @@ namespace TicketAPI
             // Add services to the container.
 
             builder.Services.AddControllers();
+            builder.Services.AddSingleton<ICloudStorage, GoogleCloudStorage>();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
