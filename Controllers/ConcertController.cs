@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Data;
@@ -10,6 +11,7 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace TicketAPI.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("[controller]")]
     public class ConcertController : ControllerBase
@@ -60,10 +62,11 @@ namespace TicketAPI.Controllers
                 string sellDate = payload.SellDate.AddDays(1).ToShortDateString();
                 string performanceDate = payload.PerformanceDate.AddDays(1).ToShortDateString();
                 string region = payload.Region;
+                string price = payload.Price;
 
                 using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
                 {
-                    string insertQuery = "INSERT INTO ConcertList (Id, Name, Image, SellDate, PerformanceDate, Region) VALUES (@Id, @Name, @Image, @SellDate, @PerformanceDate, @Region)";
+                    string insertQuery = "INSERT INTO ConcertList (Id, Name, Image, SellDate, PerformanceDate, Region, Price) VALUES (@Id, @Name, @Image, @SellDate, @PerformanceDate, @Region, @Price)";
 
                     using (SqlCommand cmd = new SqlCommand(insertQuery, cn))
                     {
@@ -73,6 +76,7 @@ namespace TicketAPI.Controllers
                         cmd.Parameters.AddWithValue("@SellDate", sellDate);
                         cmd.Parameters.AddWithValue("@PerformanceDate", performanceDate);
                         cmd.Parameters.AddWithValue("@Region", region);
+                        cmd.Parameters.AddWithValue("@Price", price);
 
                         cn.Open();
                         cmd.ExecuteNonQuery();
@@ -116,6 +120,7 @@ namespace TicketAPI.Controllers
                                         Image = reader.GetString(2),
                                         SellDate = reader.GetString(3),
                                         PerformanceDate = reader.GetString(4),
+                                        Price = reader.GetInt32(6)
                                     });
                                 }
                             }
@@ -139,6 +144,7 @@ namespace TicketAPI.Controllers
                                         Image = reader.GetString(2),
                                         SellDate = reader.GetString(3),
                                         PerformanceDate = reader.GetString(4),
+                                        Price = reader.GetInt32(6),
                                     });
                                 }
                             }

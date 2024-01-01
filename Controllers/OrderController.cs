@@ -1,11 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Data.SqlClient;
 using TicketAPI.CloudStorage;
 using TicketAPI.Models;
 
 namespace TicketAPI.Controllers
 {
+    [Authorize]
     [ApiController]
+    [Route("[controller]")]
     public class OrderController : Controller
     {
         private readonly IConfiguration _configuration;
