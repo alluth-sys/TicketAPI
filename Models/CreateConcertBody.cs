@@ -8,10 +8,11 @@
         public IFormFile Image { get; set; }
         public DateTime SellDate {get; set;}
         public string Region { get; set; }
+        public string Price { get; set; }
 
         public CreateConcertBody() { }
 
-        public CreateConcertBody(string Id, string Name, IFormFile Image, DateTime SellDate, DateTime PerformanceDate, string region)
+        public CreateConcertBody(string Id, string Name, IFormFile Image, DateTime SellDate, DateTime PerformanceDate, string region, string price)
         {
             this.Id = Id;
             this.Name = Name;
@@ -19,6 +20,7 @@
             this.SellDate = SellDate;
             this.PerformanceDate = PerformanceDate;
             Region = region;
+            Price = price;  
         }
     }
 }
