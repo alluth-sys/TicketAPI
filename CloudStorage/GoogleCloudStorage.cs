@@ -15,7 +15,8 @@ namespace TicketAPI.CloudStorage
 
         public GoogleCloudStorage(IConfiguration configuration)
         {
-            googleCredential = GoogleCredential.FromFile(configuration.GetValue<string>("GoogleCredentialFile"));
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            googleCredential = GoogleCredential.FromFile($@"{baseDirectory}credential.json");
             storageClient = StorageClient.Create(googleCredential);
             bucketName = configuration.GetValue<string>("GoogleCloudStorageBucket");
         }

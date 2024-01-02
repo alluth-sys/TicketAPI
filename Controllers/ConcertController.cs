@@ -4,10 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.Xml.Linq;
 using TicketAPI.CloudStorage;
 using TicketAPI.Models;
 using static System.Net.Mime.MediaTypeNames;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TicketAPI.Controllers
 {
@@ -18,11 +20,15 @@ namespace TicketAPI.Controllers
     {
         private readonly IConfiguration _configuration;
         private readonly ICloudStorage _cloudStorage;
+        private string connectionString;
 
         public ConcertController(IConfiguration configuration, ICloudStorage cloudStorage)
         {
             _configuration = configuration;
             _cloudStorage = cloudStorage;
+            
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            connectionString = $@"Data Source = (localdb)\MSSQLLocalDB; Initial Catalog = {baseDirectory}ConcertDB.MDF; Integrated Security = True;";
         }
 
 
@@ -32,7 +38,7 @@ namespace TicketAPI.Controllers
         { 
             try
             {
-                using (SqlConnection connection = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                using (SqlConnection connection = new SqlConnection(this.connectionString))
                 {
                     await connection.OpenAsync();
                     return true;
@@ -64,7 +70,7 @@ namespace TicketAPI.Controllers
                 string region = payload.Region;
                 string price = payload.Price;
 
-                using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                using (SqlConnection cn = new SqlConnection(this.connectionString))
                 {
                     string insertQuery = "INSERT INTO ConcertList (Id, Name, Image, SellDate, PerformanceDate, Region, Price) VALUES (@Id, @Name, @Image, @SellDate, @PerformanceDate, @Region, @Price)";
 
@@ -100,7 +106,7 @@ namespace TicketAPI.Controllers
             List<ConcertDetailResponse> result = new List<ConcertDetailResponse>();
             try
             {
-                using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                using (SqlConnection cn = new SqlConnection(this.connectionString))
                 {
                     await cn.OpenAsync();
                     if(param.Region == "All")
@@ -169,7 +175,7 @@ namespace TicketAPI.Controllers
 
             try
             {
-                using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                using (SqlConnection cn = new SqlConnection(this.connectionString))
                 {
                     await cn.OpenAsync();
                     string listQuery = "SELECT Image FROM ConcertList";
@@ -201,7 +207,7 @@ namespace TicketAPI.Controllers
             ConcertDetailResponse result = null;
             try
             {
-                using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                using (SqlConnection cn = new SqlConnection(this.connectionString))
                 {
                     await cn.OpenAsync();
                     string query = "SELECT * FROM ConcertList WHERE Id = @Id";

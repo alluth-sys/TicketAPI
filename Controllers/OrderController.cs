@@ -12,20 +12,26 @@ namespace TicketAPI.Controllers
     public class OrderController : Controller
     {
         private readonly IConfiguration _configuration;
+        private static readonly TrafficController TrafficController = new TrafficController(50);
+        private string connectionString;
 
         public OrderController(IConfiguration configuration)
         {
             _configuration = configuration;
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            connectionString = $@"Data Source = (localdb)\MSSQLLocalDB; Initial Catalog = {baseDirectory}ConcertDB.MDF; Integrated Security = True;";
+
         }
 
         [HttpPost]
         [Route("/order/create-purchase")]
         public async Task<IActionResult> PurchaseTicket([FromBody] Order payload)
         {
+
             if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+                {
+                    return BadRequest(ModelState);
+                }
 
             try
             {
@@ -38,7 +44,7 @@ namespace TicketAPI.Controllers
                 string payment = payload.PaymentMethod;
                 string amount = payload.Amount;
 
-                using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                using (SqlConnection cn = new SqlConnection(this.connectionString))
                 {
                     string insertQuery = "INSERT INTO Orders (OrderId, UserId, EventName, PurchaseDate, Seat, Payment, Amount) VALUES (@OrderId, @UserId, @EventName, @PurchaseDate, @Seat, @Payment, @Amount)";
 
@@ -63,52 +69,67 @@ namespace TicketAPI.Controllers
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 return StatusCode(500, ex.Message);
             }
+
         }
 
         [HttpGet]
         [Route("/order/list-purchase/{userid}")]
         public async Task<IActionResult> ListOrders(string userid)
         {
-            List<GetOrder> result = new List<GetOrder>();
+            if (!await TrafficController.EnterTrafficAsync())
+            {
+                return StatusCode(429, "Too many requests. Please try again later.");
+            }
+
             try
             {
-                using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                List<GetOrder> result = new List<GetOrder>();
+                try
                 {
-                    await cn.OpenAsync();
-                    string query = "SELECT * FROM Orders WHERE UserId = @Id";
-
-                    using (SqlCommand cmd = new SqlCommand(query, cn))
+                    using (SqlConnection cn = new SqlConnection(this.connectionString))
                     {
-                        cmd.Parameters.AddWithValue("@Id", userid);
+                        await cn.OpenAsync();
+                        string query = "SELECT * FROM Orders WHERE UserId = @Id";
 
-                        using (var reader = await cmd.ExecuteReaderAsync())
+                        using (SqlCommand cmd = new SqlCommand(query, cn))
                         {
-                            while (await reader.ReadAsync())
+                            cmd.Parameters.AddWithValue("@Id", userid);
+
+                            using (var reader = await cmd.ExecuteReaderAsync())
                             {
-                                result.Add(new GetOrder
+                                while (await reader.ReadAsync())
                                 {
-                                    OrderId = reader.GetString(0),
-                                    EventName = reader.GetString(1),
-                                    PurchaseDate = reader.GetString(2),
-                                    PaymentMethod = reader.GetString(3),
-                                    Seat = reader.GetString(4),
-                                    Amount = reader.GetString(5)
-                                });
+                                    result.Add(new GetOrder
+                                    {
+                                        OrderId = reader.GetString(0),
+                                        EventName = reader.GetString(1),
+                                        PurchaseDate = reader.GetString(2),
+                                        PaymentMethod = reader.GetString(3),
+                                        Seat = reader.GetString(4),
+                                        Amount = reader.GetString(5)
+                                    });
+                                }
                             }
                         }
+
+                        await cn.CloseAsync();
                     }
 
-                    await cn.CloseAsync();
+                    return Ok(result);
                 }
-
-                return Ok(result);
+                catch (Exception ex)
+                {
+                    return StatusCode(500, ex.Message);
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                return StatusCode(500, ex.Message);
+                TrafficController.ExitTraffic();
             }
+           
         }
     }
 }

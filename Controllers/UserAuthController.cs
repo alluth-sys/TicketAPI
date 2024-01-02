@@ -12,10 +12,13 @@ namespace TicketAPI.Controllers
     {
 
         private readonly IConfiguration _configuration;
+        private string connectionString;
 
         public UserAuthController(IConfiguration configuration)
         {
             _configuration = configuration;
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            connectionString = $@"Data Source = (localdb)\MSSQLLocalDB; Initial Catalog = {baseDirectory}ConcertDB.MDF; Integrated Security = True;";
         }
 
         [HttpPost]
@@ -35,7 +38,7 @@ namespace TicketAPI.Controllers
                 string hashedPassword = BCrypt.Net.BCrypt.HashPassword(payload.Password);
                 string email = payload.Email;
 
-                using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                using (SqlConnection cn = new SqlConnection(this.connectionString))
                 {
                     string insertQuery = "INSERT INTO USERS (Id, UserName, Password, Email) VALUES (@Id, @UserName, @Password, @Email)";
 
@@ -75,7 +78,7 @@ namespace TicketAPI.Controllers
                 string email = payload.Email;
                 string password = payload.Password;
 
-                using (SqlConnection cn = new SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
+                using (SqlConnection cn = new SqlConnection(this.connectionString))
                 {
                     string query = "SELECT Id, Username, Password, Email FROM USERS WHERE Email = @Email";
 
