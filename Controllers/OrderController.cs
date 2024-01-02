@@ -27,6 +27,10 @@ namespace TicketAPI.Controllers
         [Route("/order/create-purchase")]
         public async Task<IActionResult> PurchaseTicket([FromBody] Order payload)
         {
+            if (!await TrafficController.EnterTrafficAsync())
+            {
+                return StatusCode(429, "Too many requests. Please try again later.");
+            }
 
             if (!ModelState.IsValid)
                 {
@@ -35,42 +39,49 @@ namespace TicketAPI.Controllers
 
             try
             {
-                Guid guid = Guid.NewGuid();
-                string orderId = guid.ToString();
-                string uid = payload.UserId;
-                string eventName = payload.EventName;
-                string purchaseDate = payload.PurchaseDate.ToShortDateString();
-                string seat = payload.Seat;
-                string payment = payload.PaymentMethod;
-                string amount = payload.Amount;
-
-                using (SqlConnection cn = new SqlConnection(this.connectionString))
+                try
                 {
-                    string insertQuery = "INSERT INTO Orders (OrderId, UserId, EventName, PurchaseDate, Seat, Payment, Amount) VALUES (@OrderId, @UserId, @EventName, @PurchaseDate, @Seat, @Payment, @Amount)";
+                    Guid guid = Guid.NewGuid();
+                    string orderId = guid.ToString();
+                    string uid = payload.UserId;
+                    string eventName = payload.EventName;
+                    string purchaseDate = payload.PurchaseDate.ToShortDateString();
+                    string seat = payload.Seat;
+                    string payment = payload.PaymentMethod;
+                    string amount = payload.Amount;
 
-                    using (SqlCommand cmd = new SqlCommand(insertQuery, cn))
+                    using (SqlConnection cn = new SqlConnection(this.connectionString))
                     {
-                        cmd.Parameters.AddWithValue("@OrderId", orderId);
-                        cmd.Parameters.AddWithValue("@UserId", uid);
-                        cmd.Parameters.AddWithValue("@EventName", eventName);
-                        cmd.Parameters.AddWithValue("@PurchaseDate", purchaseDate);
-                        cmd.Parameters.AddWithValue("@Seat", seat);
-                        cmd.Parameters.AddWithValue("@Payment", payment);
-                        cmd.Parameters.AddWithValue("@Amount", amount);
+                        string insertQuery = "INSERT INTO Orders (OrderId, UserId, EventName, PurchaseDate, Seat, Payment, Amount) VALUES (@OrderId, @UserId, @EventName, @PurchaseDate, @Seat, @Payment, @Amount)";
 
-                        await cn.OpenAsync();
-                        await cmd.ExecuteNonQueryAsync();
-                        await cn.CloseAsync();
+                        using (SqlCommand cmd = new SqlCommand(insertQuery, cn))
+                        {
+                            cmd.Parameters.AddWithValue("@OrderId", orderId);
+                            cmd.Parameters.AddWithValue("@UserId", uid);
+                            cmd.Parameters.AddWithValue("@EventName", eventName);
+                            cmd.Parameters.AddWithValue("@PurchaseDate", purchaseDate);
+                            cmd.Parameters.AddWithValue("@Seat", seat);
+                            cmd.Parameters.AddWithValue("@Payment", payment);
+                            cmd.Parameters.AddWithValue("@Amount", amount);
+
+                            await cn.OpenAsync();
+                            await cmd.ExecuteNonQueryAsync();
+                            await cn.CloseAsync();
+                        }
                     }
-                }
 
-                var createdOrder = new { uid, eventName, message = "Created Order Successfully" };
-                return Ok(createdOrder);
+                    var createdOrder = new { uid, eventName, message = "Created Order Successfully" };
+                    return Ok(createdOrder);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    return StatusCode(500, ex.Message);
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                Console.WriteLine(ex.Message);
-                return StatusCode(500, ex.Message);
+                TrafficController.ExitTraffic();
             }
 
         }
